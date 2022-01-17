@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "com.favouriteless.lifeless.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "lifeless.refmap.json",
+  "mixins": [
+    "MixinMinecraftServer",
+    "MixinServerGamePacketListenerImpl"
+  ],
+  "client": [
+    "IMixinDeathScreen",
+    "IMixinScreen",
+    "MixinDeathScreen"
+  ],
+  "minVersion": "0.8"
+}
