@@ -80,12 +80,6 @@ public class CommonEvents {
 	@SubscribeEvent
 	public static void onPlayerRespawn(PlayerRespawnEvent event) {
 		if(!event.getPlayer().level.isClientSide && event.getPlayer().level.getLevelData().isHardcore() && event.getPlayer() instanceof ServerPlayer player) {
-			player.getCapability(PlayerLifeCapabilityManager.INSTANCE).ifPresent(cap -> {
-				if(cap.getInitialized() && cap.getValue() <= 0) {
-					player.setGameMode(GameType.SPECTATOR);
-					player.displayClientMessage(new TextComponent("haha dumbass you died so many times that you can't even respawn now").withStyle(ChatFormatting.AQUA), false);
-				}
-			});
 			updateNamesDelayed(player);
 		}
 	}

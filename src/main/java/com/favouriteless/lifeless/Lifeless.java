@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 @Mod(Lifeless.MOD_ID)
 public class Lifeless {
 
-    public static boolean DISABLE_HARDCORE = false;
     public static final String MOD_ID = "lifeless";
     public static final Logger LOGGER = LogManager.getLogger();
 
