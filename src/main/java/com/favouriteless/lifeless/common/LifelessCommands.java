@@ -17,6 +17,9 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import org.apache.logging.log4j.core.jmx.Server;
+
+import java.util.Collection;
 
 @EventBusSubscriber(modid=Lifeless.MOD_ID)
 public class LifelessCommands {
@@ -35,14 +38,14 @@ public class LifelessCommands {
 		);
 		event.getDispatcher().register(
 				Commands.literal("setlives").requires(player -> player.hasPermission(2))
-						.then(Commands.argument("player", EntityArgument.player())
+						.then(Commands.argument("players", EntityArgument.players())
 						.then(Commands.argument("lives", IntegerArgumentType.integer())
-								.executes(command -> setLives(command.getSource(), EntityArgument.getPlayer(command, "player"), IntegerArgumentType.getInteger(command, "lives")))))
+								.executes(command -> setLives(command.getSource(), EntityArgument.getPlayers(command, "players"), IntegerArgumentType.getInteger(command, "lives")))))
 		);
 		event.getDispatcher().register(
 				Commands.literal("awardlife").requires(player -> player.hasPermission(2))
-						.then(Commands.argument("player", EntityArgument.player())
-						.executes(command -> awardLife(command.getSource(), EntityArgument.getPlayer(command, "player"))))
+						.then(Commands.argument("players", EntityArgument.players())
+						.executes(command -> awardLife(command.getSource(), EntityArgument.getPlayers(command, "players"))))
 		);
 	}
 
@@ -72,30 +75,31 @@ public class LifelessCommands {
 		return 0;
 	}
 
-	private static int setLives(CommandSourceStack pSource, ServerPlayer target, int lives) {
+	private static int setLives(CommandSourceStack pSource, Collection<ServerPlayer> targets, int lives) {
 		if(pSource.getLevel().getLevelData().isHardcore()) {
-			Entity entity;
-			if(target == null)
-				entity = pSource.getEntity();
-			else
-				entity = target;
-
-			if(entity instanceof ServerPlayer player) {
-				LazyOptional<IPlayerLifeCapability> lazy = player.getCapability(PlayerLifeCapabilityManager.INSTANCE);
-				IPlayerLifeCapability cap = lazy.orElse(null);
-				cap.setValue(lives);
-				pSource.sendSuccess(new TranslatableComponent(String.format("%s now has %s lives.", player.getDisplayName().getString(), lives)).withStyle(LifelessUtils.getFormatting(lives)), true);
-				LifelessUtils.updateNamesDelayed(player);
+			if(targets.isEmpty()) {
+				if(pSource.getEntity() != null)
+					setLives((ServerPlayer)pSource.getEntity(), lives);
+				else
+					return 0;
 			}
 			else {
-				pSource.sendFailure(new TextComponent("Not a valid player.").withStyle(ChatFormatting.RED));
+				for(ServerPlayer player : targets) {
+					setLives(player, lives);
+				}
 			}
-			return lives;
 		}
 		else {
 			pSource.sendFailure(new TextComponent("Lifeless only functions in hardcore worlds. Sorry!"));
 		}
-		return 0;
+		return targets.isEmpty() ? 1 : targets.size();
+	}
+
+	private static void setLives(ServerPlayer player, int lives) {
+		LazyOptional<IPlayerLifeCapability> lazy = player.getCapability(PlayerLifeCapabilityManager.INSTANCE);
+		IPlayerLifeCapability cap = lazy.orElse(null);
+		cap.setValue(lives);
+		LifelessUtils.updateNamesDelayed(player);
 	}
 
 	private static int giveLife(CommandSourceStack pSource, ServerPlayer target) {
@@ -132,24 +136,23 @@ public class LifelessCommands {
 		return 0;
 	}
 
-	private static int awardLife(CommandSourceStack pSource, ServerPlayer target) {
+	private static int awardLife(CommandSourceStack pSource, Collection<ServerPlayer> targets) {
 		if(pSource.getLevel().getLevelData().isHardcore()) {
-			if(target != null) {
-				LazyOptional<IPlayerLifeCapability> targetLazy = target.getCapability(PlayerLifeCapabilityManager.INSTANCE);
-				targetLazy.ifPresent(cap -> cap.setValue(cap.getValue() + 1));
+			for(ServerPlayer target : targets) {
+				if(target != null) {
+					LazyOptional<IPlayerLifeCapability> targetLazy = target.getCapability(PlayerLifeCapabilityManager.INSTANCE);
+					targetLazy.ifPresent(cap -> cap.setValue(cap.getValue() + 1));
 
-				target.displayClientMessage(new TextComponent("You have been awared a life.").withStyle(ChatFormatting.GREEN), false);
-				pSource.sendSuccess(new TextComponent(String.format("You award a life to %s.", target.getDisplayName().getString())).withStyle(ChatFormatting.GREEN), true);
-				LifelessUtils.updateNamesDelayed(target);
-			}
-			else {
-				pSource.sendFailure(new TextComponent("Invalid target player.").withStyle(ChatFormatting.RED));
+					target.displayClientMessage(new TextComponent("You have been awared a life.").withStyle(ChatFormatting.GREEN), false);
+					pSource.sendSuccess(new TextComponent(String.format("You award a life to %s.", target.getDisplayName().getString())).withStyle(ChatFormatting.GREEN), true);
+					LifelessUtils.updateNamesDelayed(target);
+				}
 			}
 		}
 		else {
 			pSource.sendFailure(new TextComponent("Lifeless only functions in hardcore worlds. Sorry!"));
 		}
-		return 0;
+		return targets.size();
 	}
 
 }
